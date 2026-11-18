@@ -70,6 +70,25 @@ h1 em{font-style:normal;color:var(--yellow);text-shadow:2px 0 rgba(255,61,168,.7
 .rail button[aria-pressed=true]{color:var(--pink)}.rail button[aria-pressed=true] img{border-color:var(--pink)}
 .rail span{display:block;margin-top:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tap{color:var(--dim);text-align:center;margin:6px 0 0}
+/* live try-out */
+.try{background:radial-gradient(60% 80% at 0% 0%,rgba(255,61,168,.22),transparent 70%),var(--tape1)}
+.try-grid{display:grid;gap:40px;margin-top:40px;align-items:start}
+@media(min-width:940px){.try-grid{grid-template-columns:minmax(0,420px) 1fr}}
+.try-stage{min-width:0}
+.try-frame{position:relative;border-radius:26px;overflow:hidden;background:#000;box-shadow:0 0 0 1px rgba(243,239,226,.12),0 40px 100px rgba(0,0,0,.6),0 0 90px rgba(255,61,168,.25);line-height:0}
+.try-frame img,.try-frame canvas{display:block;width:100%;height:auto;max-height:78vh;object-fit:cover;margin:0 auto}
+.try-frame canvas[hidden],.try-frame img[hidden]{display:none}
+.try-frame::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(0deg,rgba(0,0,0,.18) 0 1px,transparent 1px 3px),radial-gradient(120% 90% at 50% 40%,transparent 55%,rgba(0,0,0,.45));pointer-events:none;z-index:2}
+.try-msg{position:absolute;z-index:5;left:50%;top:50%;transform:translate(-50%,-50%);margin:0;padding:10px 16px;border-radius:12px;background:rgba(10,7,5,.8);color:var(--osd);line-height:1.4;text-align:center;max-width:80%}
+.try-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}
+.try-actions .btn{font-size:15px;padding:12px 20px;cursor:pointer}
+.try-actions button.btn{font-family:inherit}
+.try-looks{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
+.try-looks button{display:flex;flex-direction:column;gap:2px;text-align:left;cursor:pointer;font:700 16px/1.25 var(--sans);color:var(--osd);background:var(--tape2);border:1.5px solid var(--line);border-radius:16px;padding:12px 14px;transition:transform .15s,border-color .15s,background .15s}
+.try-looks button small{color:var(--dim);font-size:11px}
+.try-looks button:hover{transform:translateY(-2px);border-color:rgba(243,239,226,.4)}
+.try-looks button.vice small{color:var(--pink)}
+.try-looks button[aria-pressed=true]{border-color:var(--pink);background:rgba(255,61,168,.12);box-shadow:0 0 0 1px var(--pink)}
 /* ticker */
 .ticker{background:var(--blue);color:var(--osd);overflow:hidden;border-block:1px solid rgba(243,239,226,.25);padding:14px 0}
 .ticker div{display:flex;gap:48px;width:max-content;animation:tick 42s linear infinite}
