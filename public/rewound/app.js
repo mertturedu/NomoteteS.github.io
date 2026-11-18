@@ -1,6 +1,33 @@
 (function(){
 var reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
 var io=function(cb,opt){return 'IntersectionObserver' in window?new IntersectionObserver(cb,opt):null};
+var motion=document.documentElement.classList.contains('motion');
+var clamp=function(v){return v<0?0:v>1?1:v},ease=function(t){return t*t*(3-2*t)};
+// the local nav: see-through over the welcome film, hidden on the way down, back on the way up
+var ln=document.querySelector('.ln'),home=document.body.classList.contains('home'),lastY=window.scrollY;
+function navFrame(y){if(!ln)return;ln.classList.toggle('top',home&&y<12);if(y>lastY+4&&y>160){ln.classList.add('hide')}else if(y<lastY-4||y<160){ln.classList.remove('hide')}lastY=y}
+// the welcome film settles from full screen into a card
+var track=document.querySelector('.hero-track'),hfilm=track&&track.querySelector('.hero-film'),hvid=hfilm&&hfilm.querySelector('video'),hcopy=track&&track.querySelector('.hero-copy'),hshade=track&&track.querySelector('.hero-shade');
+function heroFrame(){
+  if(!motion||!track)return;
+  var vh=window.innerHeight,vw=document.documentElement.clientWidth,r=track.getBoundingClientRect(),p=clamp(-r.top/Math.max(1,track.offsetHeight-vh)),e=ease(clamp(p*1.25));
+  var cw=Math.min(vw*.875,1260),ch=Math.min(vw<=734?cw*1.25:cw*9/16,vh*.78),it=(vh-ch)/2*e,il=(vw-cw)/2*e,rad=28*e;
+  var clip='inset('+it.toFixed(1)+'px '+il.toFixed(1)+'px round '+rad.toFixed(1)+'px)';hfilm.style.clipPath=clip;hfilm.style.webkitClipPath=clip;
+  if(hvid)hvid.style.transform='scale('+(1.14-.14*e).toFixed(4)+')';
+  if(hshade)hshade.style.opacity=(1-e).toFixed(3);
+  if(hcopy){hcopy.style.opacity=(1-clamp(p*2.6)).toFixed(3);hcopy.style.transform='translateY('+(-90*p).toFixed(1)+'px) scale('+(1-.06*p).toFixed(4)+')'}
+}
+// chapters: each one sticks while the next slides over it; the covered one shrinks and dims with the overlap
+var stacks=[].slice.call(document.querySelectorAll('.stack'));
+function stackLayout(){if(!motion)return;var vh=window.innerHeight;stacks.forEach(function(s){s.style.setProperty('--top',Math.min(0,vh-s.offsetHeight)+'px')})}
+function stackFrame(){if(!motion)return;var vh=window.innerHeight;for(var i=0;i<stacks.length;i++){var n=stacks[i+1],q=n?clamp((vh-n.getBoundingClientRect().top)/vh):0;q=Math.round(q*1000)/1000;if(stacks[i]._q!==q){stacks[i]._q=q;stacks[i].style.setProperty('--q',q)}}}
+var ticking=false;
+function frame(){ticking=false;var y=window.scrollY;navFrame(y);heroFrame();stackFrame()}
+window.addEventListener('scroll',function(){if(!ticking){ticking=true;requestAnimationFrame(frame)}},{passive:true});
+window.addEventListener('resize',function(){stackLayout();frame()});
+window.addEventListener('load',function(){stackLayout();frame()});
+if('ResizeObserver' in window){var ro=new ResizeObserver(function(){stackLayout();frame()});stacks.forEach(function(s){ro.observe(s)})}
+stackLayout();frame();
 // headlines and blocks rise in once
 var rv=io(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');rv.unobserve(e.target)}})},{rootMargin:'0px 0px -12% 0px'});
 [].forEach.call(document.querySelectorAll('.reveal'),function(el){rv?rv.observe(el):el.classList.add('in')});

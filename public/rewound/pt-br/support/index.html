@@ -23,9 +23,9 @@
 <link rel="icon" type="image/png" href="/rewound/icon-256.png">
 <link rel="apple-touch-icon" href="/rewound/icon-512.png">
 <link rel="stylesheet" href="/rewound/style.css">
-<script>document.documentElement.classList.add('js')</script>
+<script>var d=document.documentElement;d.classList.add('js');if(!(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches))d.classList.add('motion')</script>
 </head>
-<body>
+<body class="inner">
 <nav class="ln" aria-label="Rewound"><div class="ln-in">
 <a class="ln-brand" href="/rewound/pt-br/"><img src="/rewound/icon-256.png" alt="" width="26" height="26">Rewound</a>
 <div class="ln-menu"><a class="opt" href="/rewound/pt-br/">Visão geral</a><a class="opt" href="/rewound/pt-br/support/" aria-current="page">Suporte</a><a class="ln-pill" href="/rewound/pt-br/#try">Experimente</a></div>
