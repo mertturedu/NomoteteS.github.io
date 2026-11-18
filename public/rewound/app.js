@@ -39,8 +39,6 @@ var cio=io(function(es){es.forEach(function(e){if(!e.isIntersecting)return;cio.u
 // films play only while on screen
 var fio=io(function(es){es.forEach(function(e){var v=e.target;if(e.isIntersecting&&!reduce){if(!v.src&&v.dataset.src)v.src=v.dataset.src;var p=v.play();p&&p.catch(function(){})}else{v.pause()}})},{threshold:.2});
 [].forEach.call(d.querySelectorAll('video[data-auto]'),function(v){if(fio)fio.observe(v);else if(v.dataset.src)v.src=v.dataset.src});
-// the shutter rolls the tape to the try-out
-var sh=d.querySelector('.shutter');if(sh)sh.addEventListener('click',function(){var t=d.getElementById('try');if(t)t.scrollIntoView({behavior:reduce?'auto':'smooth'})});
 // recordings: each film plays once, then the next tape comes in; REW / PLAY-PAUSE / FF
 var hl=d.querySelector('[data-hl]');
 if(hl){
@@ -71,6 +69,84 @@ if(shelf){
     mon.querySelector('[data-fam]').textContent=b.dataset.fam;mon.querySelector('[data-n]').textContent=b.dataset.n;mon.querySelector('[data-ch]').textContent='CH '+pad(i+1);mon.querySelector('[data-look]').textContent=b.dataset.look}
   sp.forEach(function(b,i){b.addEventListener('click',function(){pick(i)});b.addEventListener('keydown',function(e){if(e.key==='ArrowRight'){e.preventDefault();sp[(i+1)%sp.length].focus();pick((i+1)%sp.length)}else if(e.key==='ArrowLeft'){e.preventDefault();var k=(i-1+sp.length)%sp.length;sp[k].focus();pick(k)}})});
 }
+// the opening: a tape drops into the deck, the deck says PLAY, the screen powers on, the picture rolls in
+var vi=d.querySelector('.vcr-intro');
+if(vi&&root.classList.contains('intro')){
+  var lc=vi.querySelector('[data-vlcd]'),tm=[],over=false;
+  function done(){if(over)return;over=true;tm.forEach(clearTimeout);root.classList.remove('intro');vi.remove();try{sessionStorage.setItem('rw-intro','1')}catch(e){}
+    var h1=d.querySelector('.hero h1');if(h1){h1.classList.remove('in');void h1.offsetWidth;h1.classList.add('in')}}
+  [[60,'s1'],[720,'s2'],[1260,'s3'],[1700,'s4'],[2300,'s5'],[2700,'s6']].forEach(function(s){tm.push(setTimeout(function(){vi.classList.add(s[1]);if(s[1]==='s3'&&lc)lc.innerHTML=lc.getAttribute('data-play')+'<span>PLAY</span>'},s[0]))});
+  tm.push(setTimeout(done,3150));
+  var skip=function(){if(over)return;tm.forEach(clearTimeout);vi.classList.add('s6');setTimeout(done,320)};
+  vi.querySelector('.skip').addEventListener('click',skip);
+  ['keydown','wheel','touchstart'].forEach(function(n){window.addEventListener(n,skip,{once:true,passive:true})});
+  vi.addEventListener('click',skip);
+}
+// tube screens power on as they come in
+var crt=io(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('on');crt.unobserve(e.target)}})},{rootMargin:'0px 0px -8% 0px'});
+[].forEach.call(d.querySelectorAll('.crt'),function(el){crt?crt.observe(el):el.classList.add('on')});
+// the channel number flashes up as a chapter starts
+var chosd=d.querySelector('.chosd'),chio=io(function(es){es.forEach(function(e){if(!e.isIntersecting||!chosd)return;chosd.textContent='CH '+pad(+e.target.getAttribute('data-ch'));chosd.classList.remove('show');void chosd.offsetWidth;chosd.classList.add('show')})},{threshold:.5});
+[].forEach.call(d.querySelectorAll('.bs[data-ch]'),function(b){if(chio)chio.observe(b)});
+// Try it: the try-out lands in the middle of the screen
+function toTry(e){var g=d.querySelector('.try-g');if(!g)return;if(e)e.preventDefault();var r=g.getBoundingClientRect(),vh=window.innerHeight,top=r.top+window.scrollY,off=r.height<vh-90?(vh-r.height)/2+16:84;
+  window.scrollTo({top:Math.max(0,top-off),behavior:reduce?'auto':'smooth'});try{history.replaceState(null,'','#try')}catch(_){}}
+[].forEach.call(d.querySelectorAll('a[href$="#try"],[data-try-link]'),function(a){a.addEventListener('click',toTry)});
+if(location.hash==='#try')window.addEventListener('load',function(){setTimeout(function(){toTry()},60)});
+// a stacked film (the original above the look) drawn into a canvas: before / after and the intensity demo
+function stack(box,paint){
+  var v=box.querySelector('video'),cv=box.querySelector('canvas'),cx=cv.getContext('2d'),raf=0,seen=false;
+  var dpr=Math.min(2,window.devicePixelRatio||1);function size(){var w=Math.max(2,Math.round(box.clientWidth*dpr)),h=Math.max(2,Math.round(box.clientHeight*dpr));if(cv.width!==w)cv.width=w;if(cv.height!==h)cv.height=h}
+  function draw(){raf=requestAnimationFrame(draw);if(v.readyState<2||!v.videoWidth)return;size();var vw=v.videoWidth,vh=v.videoHeight/2,W=cv.width,H=cv.height,s=Math.max(W/vw,H/vh),sw=W/s,sh=H/s,sx=(vw-sw)/2,sy=(vh-sh)/2;
+    cx.globalAlpha=1;cx.drawImage(v,sx,sy,sw,sh,0,0,W,H);paint(cx,function(){cx.drawImage(v,sx,sy+vh,sw,sh,0,0,W,H)},W,H)}
+  function on(){if(!v.src)v.src=v.dataset.src;var p=v.play();p&&p.catch(function(){});cancelAnimationFrame(raf);raf=requestAnimationFrame(draw)}
+  function off(){v.pause();cancelAnimationFrame(raf)}
+  var o=io(function(es){seen=es[0].isIntersecting;seen&&!reduce?on():(seen?(v.src||(v.src=v.dataset.src),v.addEventListener('loadeddata',function(){draw();cancelAnimationFrame(raf)},{once:true})):off())},{threshold:.15});
+  o?o.observe(box):on();size();window.addEventListener('resize',size);
+  return {src:function(u){var t=v.currentTime;v.src=u;if(seen)on()}};
+}
+var ba=d.querySelector('[data-ba]');
+if(ba){
+  var split=.5,tabs=[].slice.call(d.querySelectorAll('[data-ba-src]')),line=ba.querySelector('.ba-line'),nm=ba.querySelector('[data-ba-name]');
+  var sp=stack(ba,function(cx,look,W,H){var x=Math.round(split*W);cx.save();cx.beginPath();cx.rect(x,0,W-x,H);cx.clip();look();cx.restore()});
+  function setX(x){split=Math.min(1,Math.max(0,x));ba.style.setProperty('--x',split);line.setAttribute('aria-valuenow',Math.round(split*100))}
+  var drag=false;function at(e){var r=ba.getBoundingClientRect();setX((e.clientX-r.left)/r.width)}
+  ba.addEventListener('pointerdown',function(e){drag=true;try{ba.setPointerCapture(e.pointerId)}catch(_){}at(e)});
+  ba.addEventListener('pointermove',function(e){if(drag)at(e)});
+  ['pointerup','pointercancel'].forEach(function(n){ba.addEventListener(n,function(){drag=false})});
+  line.addEventListener('keydown',function(e){if(e.key==='ArrowLeft'||e.key==='ArrowRight'){e.preventDefault();setX(split+(e.key==='ArrowLeft'?-.05:.05))}});
+  tabs.forEach(function(t){t.addEventListener('click',function(){tabs.forEach(function(b){b.setAttribute('aria-selected',b===t?'true':'false')});nm.textContent=t.getAttribute('data-ba-look');ba.classList.remove('flip');void ba.offsetWidth;ba.classList.add('flip');sp.src(t.getAttribute('data-ba-src'))})});
+  // a hint of the line moving on first sight
+  if(!reduce){var hio=io(function(es){if(!es[0].isIntersecting)return;hio.disconnect();var t0=performance.now();(function sw(t){var k=(t-t0)/1400;if(k>1||drag)return;setX(.5+Math.sin(k*Math.PI*2)*.18*(1-k));requestAnimationFrame(sw)})(t0)},{threshold:.6});hio&&hio.observe(ba)}
+}
+var adj=d.querySelector('[data-adj]');
+if(adj){
+  var k=1,rng=adj.querySelector('[data-adj-range]'),vv=adj.querySelector('[data-adj-v]'),pct=adj.querySelector('[data-adj-pct]'),an=adj.querySelector('[data-adj-name]'),looks=[].slice.call(adj.querySelectorAll('[data-adj-src]'));
+  var ap=stack(adj.querySelector('.adj-mon'),function(cx,look){cx.globalAlpha=k;look();cx.globalAlpha=1});
+  function setK(n){k=n/100;vv.textContent=n;pct.textContent=n+'%';rng.style.setProperty('--v',k)}
+  rng.addEventListener('input',function(){setK(+rng.value)});setK(+rng.value);
+  looks.forEach(function(b){b.addEventListener('click',function(){looks.forEach(function(x){x.setAttribute('aria-checked',x===b?'true':'false')});an.textContent=b.getAttribute('data-adj-look');ap.src(b.getAttribute('data-adj-src'))})});
+}
+// scenes: switching the channel
+var sc=d.querySelector('[data-scenes]');
+if(sc){
+  var mon2=sc.querySelector('.sc-mon'),sv=mon2.querySelector('video'),stabs=[].slice.call(sc.querySelectorAll('[data-sc]'));
+  var sio=io(function(es){if(es[0].isIntersecting&&!reduce){if(!sv.src)sv.src=sv.dataset.src;var p=sv.play();p&&p.catch(function(){})}else sv.pause()},{threshold:.2});sio&&sio.observe(mon2);
+  stabs.forEach(function(t){t.addEventListener('click',function(){stabs.forEach(function(b){b.setAttribute('aria-selected',b===t?'true':'false')});
+    mon2.classList.remove('flip');void mon2.offsetWidth;mon2.classList.add('flip');
+    setTimeout(function(){sv.poster=t.getAttribute('data-poster');sv.src=t.getAttribute('data-src');if(!reduce){var p=sv.play();p&&p.catch(function(){})}},reduce?0:140);
+    mon2.querySelector('[data-scn]').textContent=t.querySelector('b').textContent.toUpperCase();mon2.querySelector('[data-sclook]').textContent=t.querySelector('em').textContent.toUpperCase()})});
+}
+// decades: the vertical scroll runs the reel sideways; the year counts up like a tape counter
+var dec=d.querySelector('[data-dec]');
+if(dec&&root.classList.contains('motion')){
+  var tr=dec.querySelector('.dec-track'),cards=[].slice.call(tr.children),yr=dec.querySelector('[data-year]'),dl=dec.querySelector('[data-dlook]'),bar=dec.querySelector('[data-dbar]'),cur2=-1,span=0;
+  function decLayout(){var last=cards[cards.length-1];span=Math.max(0,last.offsetLeft+last.offsetWidth-(window.innerWidth-cards[0].offsetLeft));dec.style.setProperty('--dech',(span+window.innerHeight*1.15)+'px')}
+  function decFrame(){var r=dec.getBoundingClientRect(),tot=Math.max(1,dec.offsetHeight-window.innerHeight),p=clamp(-r.top/tot);tr.style.transform='translate3d('+(-span*p).toFixed(1)+'px,0,0)';bar.parentNode.style.setProperty('--p',p);
+    var i=Math.min(cards.length-1,Math.round(p*(cards.length-1)));if(i!==cur2){cur2=i;yr.textContent=cards[i].getAttribute('data-y');dl.textContent=cards[i].getAttribute('data-l');yr.classList.remove('tick');void yr.offsetWidth;yr.classList.add('tick')}}
+  decLayout();decFrame();window.addEventListener('resize',function(){decLayout();decFrame()});window.addEventListener('load',function(){decLayout();decFrame()});
+  window.addEventListener('scroll',function(){requestAnimationFrame(decFrame)},{passive:true});
+}
 })();
 (function(){
 var root=document.querySelector('[data-try]');if(!root)return;
@@ -82,6 +158,8 @@ var CK=null,data=null,gr=null,surface=null,img=null,child=null,W=0,H=0,cur=+root
 var reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
 function say(t,err){status.textContent=t||'';status.classList.toggle('err',!!err)}
 function log(e){if(window.console)console.error('[rewound try]',e)}
+function fx(n){stage.classList.remove(n);void stage.offsetWidth;stage.classList.add(n);setTimeout(function(){stage.classList.remove(n)},1100)}
+function slow(p){return Promise.all([p,new Promise(function(r){setTimeout(r,reduce?0:900)})]).then(function(r){return r[0]})}
 function script(src){return new Promise(function(ok,no){var s=document.createElement('script');s.src=src;s.async=true;s.onload=ok;s.onerror=function(){no(new Error('script'))};document.head.appendChild(s)})}
 // the photo is opened by the browser itself (an <img>: HEIC in Safari, EXIF rotation everywhere), scaled down to at most
 // 1080 px on its long side (the app's preview size), and handed to CanvasKit as pixels
@@ -129,6 +207,7 @@ function render(t){
 function tick(ts){raf=requestAnimationFrame(tick);if(ts-last<33)return;last=ts;clock=1.7+ts/1000;render(clock)}
 function loop(){cancelAnimationFrame(raf);raf=0;if(!data||!surface)return;if(data.looks[cur].animated&&!reduce&&shown&&!document.hidden){raf=requestAnimationFrame(tick)}else{render(clock)}}
 function pick(i){
+  if(i!==cur&&surface&&!reduce)fx('switch');
   cur=i;chips.forEach(function(b,j){b.setAttribute('aria-checked',j===i?'true':'false')});
   lname.textContent=chips[i].getAttribute('data-name');lgroup.textContent=chips[i].getAttribute('data-group');
   start().then(loop,function(){});
@@ -136,15 +215,15 @@ function pick(i){
 function openFile(f){
   if(!f)return;
   var heic=/hei[cf]/i.test((f.type||'')+' '+(f.name||''));
-  say(S.opening);
-  start().then(function(){return decode(f)}).then(function(p){use(p);say('')}).catch(function(e){log(e);say(String(e&&e.message)==='webgl'?S.errWebgl:heic?S.errHeic:S.errFormat,true)});
+  say(S.opening);stage.classList.add('loading');
+  start().then(function(){return slow(decode(f))}).then(function(p){stage.classList.remove('loading');use(p);if(!reduce)fx('roll');say('')}).catch(function(e){stage.classList.remove('loading');log(e);say(String(e&&e.message)==='webgl'?S.errWebgl:heic?S.errHeic:S.errFormat,true)});
 }
 chips.forEach(function(b,i){b.addEventListener('click',function(){pick(i)})});
 file.addEventListener('change',function(){var f=file.files&&file.files[0];file.value='';openFile(f)});
 ['dragenter','dragover'].forEach(function(n){stage.addEventListener(n,function(e){e.preventDefault();stage.classList.add('drag')})});
 ['dragleave','drop'].forEach(function(n){stage.addEventListener(n,function(e){e.preventDefault();stage.classList.remove('drag')})});
 stage.addEventListener('drop',function(e){var f=e.dataTransfer&&e.dataTransfer.files&&e.dataTransfer.files[0];openFile(f)});
-root.querySelector('[data-sample]').addEventListener('click',function(){say(S.opening);start().then(function(){return fetch('/rewound/try/sample.jpg')}).then(function(r){return r.blob()}).then(decode).then(function(p){use(p);say('')}).catch(function(e){log(e);say(S.errFormat,true)})});
+root.querySelector('[data-sample]').addEventListener('click',function(){say(S.opening);stage.classList.add('loading');start().then(function(){return fetch('/rewound/try/sample.jpg')}).then(function(r){return r.blob()}).then(function(b){return slow(decode(b))}).then(function(p){stage.classList.remove('loading');use(p);if(!reduce)fx('roll');say('')}).catch(function(e){stage.classList.remove('loading');log(e);say(S.errFormat,true)})});
 root.querySelector('[data-save]').addEventListener('click',function(){
   start().then(function(){
     render(clock);
