@@ -348,7 +348,7 @@ html:not(.motion) .dec-track{overflow-x:auto;scroll-snap-type:x mandatory;scroll
 .sc-tabs em{font-style:normal;font:700 11px/1 var(--sans);padding:5px 8px;border-radius:999px;background:var(--t3);color:var(--osd)}
 .sc-tabs button[aria-selected=true]{background:#2b1a25;box-shadow:inset 0 0 0 2px var(--pink)}
 .sc-tabs button[aria-selected=true] .cam{color:var(--pink)}
-.sc-mon{border-radius:24px;aspect-ratio:16/10;background:var(--t0);box-shadow:var(--soft)}
+.sc-mon{border-radius:24px;aspect-ratio:16/10;width:100%;align-self:center;background:var(--t0);box-shadow:var(--soft)}
 .sc-mon video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 @media(max-width:734px){.sc-mon{aspect-ratio:4/5;border-radius:20px}}
 /* the app's Adjust panel */
@@ -527,4 +527,29 @@ html.st-open #try{position:relative;z-index:300}
 .sealed .sm .cam{font-size:22px;color:var(--osd);letter-spacing:.1em;white-space:nowrap}
 @media(max-width:734px){.sealed{gap:14px;padding:12px 14px}.sealed .cas{width:116px}.sealed .sm .cam{font-size:18px}}
 .sealed .soon{font:800 10px/1 var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--yellow)}
+/* the languages Satoshi does not cover: Cyrillic and Vietnamese use the system font for whole words (no mixed letters),
+   the other scripts keep Satoshi for Latin words and fall back to the system's own font; no tracking where letters
+   join (Arabic), stack (Thai, Devanagari) or stand in a grid (CJK) */
+:lang(ru),:lang(uk),:lang(vi){--sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans",Helvetica,Arial,sans-serif}
+:lang(ja){--sans:Satoshi,"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP","Yu Gothic",Meiryo,sans-serif}
+:lang(ko){--sans:Satoshi,"Apple SD Gothic Neo","Noto Sans KR","Malgun Gothic",sans-serif}
+:lang(zh-Hans){--sans:Satoshi,"PingFang SC","Hiragino Sans GB","Noto Sans SC","Microsoft YaHei",sans-serif}
+:lang(zh-Hant){--sans:Satoshi,"PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif}
+:lang(ar){--sans:Satoshi,"SF Arabic","Geeza Pro","Noto Sans Arabic","Segoe UI",Tahoma,sans-serif}
+:lang(th){--sans:Satoshi,Thonburi,"Noto Sans Thai","Leelawadee UI",sans-serif}
+:lang(hi){--sans:Satoshi,"Kohinoor Devanagari","Noto Sans Devanagari","Nirmala UI",sans-serif}
+:is(:lang(ar),:lang(th),:lang(hi),:lang(ja),:lang(ko),:lang(zh-Hans),:lang(zh-Hant)) :is(h1,h2,h3,h4,p,li,summary,figcaption,a,b,small,.lead){letter-spacing:0!important}
+:is(:lang(ar),:lang(th),:lang(hi)) :is(h1,h2,h3){line-height:1.3!important}
+:is(:lang(ja),:lang(ko),:lang(zh-Hans),:lang(zh-Hant)) :is(h1,h2,h3){line-height:1.22!important}
+:lang(ja) :is(h1,h2,p){word-break:auto-phrase}
+:is(:lang(vi),:lang(ar),:lang(th),:lang(hi),:lang(ja),:lang(ko),:lang(zh-Hans),:lang(zh-Hant)) .facts span{font-family:var(--sans);font-weight:800;letter-spacing:0}
+/* right to left: the page mirrors, the strips that scroll or slide sideways keep their left-to-right order */
+[dir=rtl] :is(.reel,.dec-track,.st-photos,.fams,.sc-tabs,.transport,.spines,.lcd){direction:ltr}
+[dir=rtl] :is(.reel>li,.sc-tabs>button){direction:rtl}
+[dir=rtl] :is(.osd,.chn,.loadosd,.cam,.pix){direction:ltr}
+[dir=rtl] .flegal span{direction:ltr;unicode-bidi:isolate}
+/* the 24 languages of the footer */
+.fcols .langs{flex:1 1 100%}
+.fcols .lgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px 24px}
+.fcols .lgrid a{justify-self:start}
 @media(prefers-reduced-motion:reduce){body::after,.tex::after,.wind{animation:none}.band,.tex .tband{display:none}.glow i{animation:none}html.js .trk{opacity:1;transform:none;transition:none}.trk.in.sweep,.trk.in.sweep::after,.rvin.in,.bs.on .static,.mon.flip .static{animation:none}.dot{animation:none}.spine,.deck{transition:none}.spine.out,.spine::after,.stage.swipe-l canvas,.stage.swipe-r canvas,.mon.flip .eject{animation:none}.crt,.crt.on{animation:none;transform:none;filter:none}.head.trk h2{clip-path:none!important;animation:none!important}.stage.roll canvas,.stage.roll img,.stage.switch canvas{animation:none}.cas .reel{animation:none}}
