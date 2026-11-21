@@ -46,7 +46,7 @@ if(hl){
   var cur=0,auto=!reduce,seen=false,lock=0;
   function vid(i){return items[i].querySelector('video')}
   function show(i){cur=i;if(cnt)cnt.textContent=(i+1)+'/'+items.length;
-    items.forEach(function(it,j){var v=vid(j);if(j!==i){v.pause();if(v.currentTime)v.currentTime=0}});
+    items.forEach(function(it,j){var v=vid(j);v.dataset.active=j===i?'1':'';if(j!==i){v.pause();if(v.currentTime)v.currentTime=0}});
     var v=vid(i);if(!v.src)v.src=v.dataset.src;if(auto&&seen){var p=v.play();p&&p.catch(function(){})}}
   function go(i){i=(i+items.length)%items.length;lock=Date.now();list.scrollTo({left:items[i].offsetLeft-items[0].offsetLeft,behavior:reduce?'auto':'smooth'});show(i)}
   items.forEach(function(it,j){var v=vid(j),o=it.querySelector('[data-vtc]');v.addEventListener('ended',function(){if(j===cur&&auto)go(cur+1)});
@@ -54,7 +54,7 @@ if(hl){
   hl.querySelector('[data-prev]').addEventListener('click',function(){go(cur-1)});
   hl.querySelector('[data-next]').addEventListener('click',function(){go(cur+1)});
   function ppDraw(){pp.innerHTML=auto?pp.dataset.pause:pp.dataset.play;pp.setAttribute('aria-label',auto?pp.dataset.lpause:pp.dataset.lplay)}
-  pp.addEventListener('click',function(){auto=!auto;ppDraw();if(auto)show(cur);else vid(cur).pause()});ppDraw();
+  pp.addEventListener('click',function(){auto=!auto;vid(cur).dataset.hold=auto?'':'1';ppDraw();if(auto)show(cur);else vid(cur).pause()});ppDraw();
   var t=0;list.addEventListener('scroll',function(){clearTimeout(t);t=setTimeout(function(){if(Date.now()-lock<700)return;var w=items[1].offsetLeft-items[0].offsetLeft,i=Math.round(list.scrollLeft/w);if(i!==cur)show(Math.max(0,Math.min(items.length-1,i)))},120)},{passive:true});
   var hio=io(function(es){seen=es[0].isIntersecting;if(seen)show(cur);else vid(cur).pause()},{threshold:.35});
   hio?hio.observe(list):(seen=true,show(0));
@@ -144,6 +144,23 @@ if(dec&&root.classList.contains('motion')){
   decLayout();decFrame();window.addEventListener('resize',function(){decLayout();decFrame()});window.addEventListener('load',function(){decLayout();decFrame()});
   window.addEventListener('scroll',function(){requestAnimationFrame(decFrame)},{passive:true});
 }
+// Keep-alive: the films are loops that must never stand still. A browser may pause a video on its own (a long wait, a
+// background tab, memory pressure, Low Power Mode) or drop its source: a looping video in view is started again, one that
+// lost its source is reloaded. The reel's visitor-chosen pause (data-hold) and the reduced-motion setting are respected.
+function alive(){
+  if(reduce||d.hidden)return;
+  [].forEach.call(d.querySelectorAll('video'),function(v){
+    if(v.dataset.hold||!(v.loop||v.dataset.active)||v.offsetWidth<10)return;
+    var r=v.getBoundingClientRect();if(r.bottom<0||r.top>innerHeight)return;
+    var src=v.getAttribute('src')||v.dataset.src;if(!src)return;
+    if(!v.getAttribute('src'))v.setAttribute('src',src);
+    if(v.error||v.networkState===3||(v.readyState===0&&v.networkState===0)){v.load()}
+    if(v.paused||v.ended){var p=v.play();p&&p.catch(function(){})}
+  });
+}
+setInterval(alive,2000);
+['visibilitychange','pageshow','focus','online'].forEach(function(n){(n==='pageshow'||n==='focus'?window:d).addEventListener(n,function(){alive()})});
+d.addEventListener('click',alive,{passive:true});d.addEventListener('touchstart',alive,{passive:true});
 })();
 (function(){
 var d=document,reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
